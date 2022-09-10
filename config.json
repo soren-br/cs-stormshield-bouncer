@@ -1,0 +1,13 @@
+{
+    "crowdsec":{
+        "url":"",
+        "token":""
+    },
+
+    "stormshield":{
+        "ip":"",
+        "port":443,
+        "username":"admin",
+        "password":""
+    }
+}
