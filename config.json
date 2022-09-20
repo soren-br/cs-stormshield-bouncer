@@ -8,6 +8,7 @@
         "ip":"",
         "port":443,
         "username":"admin",
-        "password":""
+        "password":"",
+        "groupe-name":"cs-stormshield-bouncer"
     }
 }

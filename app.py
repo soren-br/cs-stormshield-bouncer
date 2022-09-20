@@ -21,7 +21,7 @@ class CrowdSecConnector():
         if response.status_code == 200:
             self.data = json.loads(response.text)
         else:
-            return 'Impossible de communiquer avec le serveur Crowdsec (Error : {})'.format(response.status_code)
+            return 'Unable to communicate with the Crowdsec server (Error : {})'.format(response.status_code)
 
     def get_new_ip(self):
 
@@ -43,12 +43,13 @@ class CrowdSecConnector():
 
 class StormshieldConnector():
 
-    def __init__(self, ip, port, username, password):
+    def __init__(self, ip, port, username, password, group_name):
 
         self.ip = ip
         self.username = username
         self.password = password
         self.port = port
+        self.group_name = group_name
 
         self.client = self.get_auth()
 
@@ -70,22 +71,15 @@ class StormshieldConnector():
         for ip in ips:
             name_of_obj = "crowdsec_{}".format(ip)
             self.client.send_command("MODIFY ON FORCE")
-            commande = '''CONFIG OBJECT HOST NEW name="{}" comment="IP Bloqué par Crowdsec" ip="{}" resolve=static mac="" update=1'''.format(name_of_obj, ip)
+            commande = '''CONFIG OBJECT HOST NEW name="{}" comment="IP Blocked by Crowdsec" ip="{}" resolve=static mac="" update=1'''.format(name_of_obj, ip)
             response = self.client.send_command(commande)
-    
-    def create_group(self):
-
-        self.client.send_command("MODIFY ON FORCE")
-        commande = '''CONFIG OBJECT GROUP NEW name=Crowdsec_banned_ip comment="Group d'ip bannie"'''
-        self.client.send_command(commande)
-        self.client.send_command("CONFIG OBJECT ACTIVATE")
 
     def add_to_group(self,ips):
 
         self.client.send_command("MODIFIY ON FORCE")
         for ip in ips:
             name_of_obj = "crowdsec_{}".format(ip)
-            commande = '''CONFIG OBJECT GROUP ADDTO group=Crowdsec_banned_ip node={}'''.format(name_of_obj)
+            commande = '''CONFIG OBJECT GROUP ADDTO group={} node={}'''.format(self.group_name, name_of_obj)
             self.client.send_command(commande)
         
         self.client.send_command("CONFIG OBJECT ACTIVATE")
@@ -95,7 +89,7 @@ class StormshieldConnector():
         self.client.send_command("MODIFY ON FORCE")
         for ip in ips:
             name_of_obj = "crowdsec_{}".format(ip)
-            commande = '''CONFIG OBJECT GROUP REMOVEFROM group=Crowdsec_banned_ip node={}'''.format(name_of_obj)
+            commande = '''CONFIG OBJECT GROUP REMOVEFROM group={} node={}'''.format(self.group_name, name_of_obj)
             self.client.send_command(commande)
         
         self.client.send_command("CONFIG OBJECT ACTIVATE")
@@ -123,6 +117,7 @@ if __name__ == '__main__':
     stormshield_port = json_conf_data['stormshield']['port']
     stormshield_username = json_conf_data['stormshield']['username']
     stormshield_password = json_conf_data['stormshield']['password']
+    stormshield_group_name = json_conf_data['stormshield']['groupe-name']
 
     crowdsecconnector = CrowdSecConnector(crowdsec_url,crowdsec_token)
     crowdsecconnector.get_data()
@@ -131,7 +126,6 @@ if __name__ == '__main__':
     ip_unblocked = crowdsecconnector.get_deleted_ip()
 
     stormshieldconnector = StormshieldConnector(stormshield_ip, stormshield_port, stormshield_username, stormshield_password)
-    stormshieldconnector.create_group()
     
     if ip_blocked == None:
         pass
